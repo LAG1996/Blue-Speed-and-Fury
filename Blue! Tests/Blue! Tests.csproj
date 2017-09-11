@@ -82,6 +82,7 @@
     <Compile Include="Assets\General_Scripts\Movement\AerialHandler.cs" />
     <Compile Include="Assets\General_Scripts\Movement\MoveHandler.cs" />
     <Compile Include="Assets\Lark_Stuff\Scripts\General\Lark.cs" />
+    <Compile Include="Assets\Lark_Stuff\Scripts\General\Lark_v1.cs" />
     <Compile Include="Assets\Lark_Stuff\Scripts\Movement\Shit_Move_Lark.cs" />
     <Compile Include="Assets\Lark_Stuff\Scripts\Movement\Shit_Move_Lark_1.cs" />
     <Compile Include="Assets\Lark_Stuff\Scripts\Movement\Shit_Move_Lark_2.cs" />

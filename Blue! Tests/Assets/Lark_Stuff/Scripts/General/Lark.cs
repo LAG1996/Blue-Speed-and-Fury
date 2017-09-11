@@ -8,8 +8,6 @@ public class Lark : MonoBehaviour {
     public float temp_accel;
     public float temp_friction;
     public float temp_stopping_power;
-    public float temp_max_vel_up;
-    public float temp_max_vel_down;
     public float temp_jump_strength;
     public float max_stand_dist_from_ground;
     public float temp_gravity;
