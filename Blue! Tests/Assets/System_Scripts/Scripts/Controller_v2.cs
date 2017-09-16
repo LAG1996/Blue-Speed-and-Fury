@@ -5,21 +5,18 @@ using UnityEngine;
 //A class that interprets inputs from the player. It sends the messages to the appropriate reciever for them to figure out.
 public class Controller_v2 {
 
-    public delegate void PlayerKeyHook(string action);
-    public delegate void PlayerMouseHook(Vector2 dir);
+    private Dictionary<string, SysCore.PlayerKeyHook> KeyHooks;
+    private Dictionary<string, SysCore.PlayerMouseHook> MouseHooks;
 
-    private Dictionary<string, PlayerKeyHook> KeyHooks;
-    private Dictionary<string, PlayerMouseHook> MouseHooks;
-
-    private PlayerKeyHook active_key_hook;
-    private PlayerMouseHook active_mouse_hook;
+    private SysCore.PlayerKeyHook active_key_hook;
+    private SysCore.PlayerMouseHook active_mouse_hook;
 
     private Dictionary<string, string> Key_To_Action;
 
     public Controller_v2()
     {
-        KeyHooks = new Dictionary<string, PlayerKeyHook>();
-        MouseHooks = new Dictionary<string, PlayerMouseHook>();
+        KeyHooks = new Dictionary<string, SysCore.PlayerKeyHook>();
+        MouseHooks = new Dictionary<string, SysCore.PlayerMouseHook>();
         Key_To_Action = new Dictionary<string, string>();
 
 
@@ -29,24 +26,26 @@ public class Controller_v2 {
         active_mouse_hook = null;
     }
 
-    public void AddNewHook(string name, PlayerKeyHook func)
+    public void AddNewHook(string name, SysCore.PlayerKeyHook func)
     {
         KeyHooks.Add(name, func);
     }
 
-    public void AddNewHook(string name, PlayerMouseHook func)
+    public void AddNewHook(string name, SysCore.PlayerMouseHook func)
     {
         MouseHooks.Add(name, func);
     }
 
     public void SetActiveKeyHook(string name)
     {
-        active_key_hook = KeyHooks[name];
+        if(name != null)
+            active_key_hook = KeyHooks[name];
     }
 
     public void SetActiveMouseHook(string name)
     {
-        active_mouse_hook = MouseHooks[name];
+        if(name != null)
+            active_mouse_hook = MouseHooks[name];
     }
 
     public void SetKeyAction(string key, string action)
