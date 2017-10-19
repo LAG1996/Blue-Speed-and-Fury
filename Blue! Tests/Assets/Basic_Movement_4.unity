@@ -191,6 +191,52 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 4
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: -23.27}
+--- !u!1 &139912924
+GameObject:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  serializedVersion: 5
+  m_Component:
+  - component: {fileID: 139912925}
+  - component: {fileID: 139912926}
+  m_Layer: 0
+  m_Name: Cam_Foc
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &139912925
+Transform:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 139912924}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 6.5, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 1168519681}
+  m_RootOrder: 3
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &139912926
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 139912924}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b967795eb86da8e48a08cd49b92e0915, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Lark: {fileID: 1168519679}
+  System: {fileID: 849719407}
+  x_speed: 75
+  y_speed: 75
+  y_minimum: -10
+  y_maximum: 80
 --- !u!1 &270054312
 GameObject:
   m_ObjectHideFlags: 0
@@ -389,7 +435,7 @@ MonoBehaviour:
   Lark_Obj: {fileID: 0}
   Camera_Focus_Obj: {fileID: 0}
   Camera: {fileID: 0}
-  Context_To_Switch_To: 
+  CURRENT_CONTEXT: 
 --- !u!4 &849719409
 Transform:
   m_ObjectHideFlags: 0
@@ -466,7 +512,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 1
+  m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 50, y: -30, z: 0}
 --- !u!1 &1168519679 stripped
 GameObject:
@@ -493,10 +539,15 @@ MonoBehaviour:
   default_max_dist_from_ground: 1
   default_max_speed: 200
   default_min_speed: 0
-  default_accel: 10
+  default_accel: 100
   default_sharp_turn_speed: 100
-  braking_pow: 10
+  braking_pow: 100
   max_reverse_speed: 50
+  turn_threshold: 0
+  impulse: 100
+  max_jump_height: 30
+  max_jump_dur: 2
+  OVERRIDE_GROUND_CHECK: 0
 --- !u!1 &1339736383 stripped
 GameObject:
   m_PrefabParentObject: {fileID: 100002, guid: 5f6bbe3ba7f0b984596a9d84bdc12a4d, type: 3}
@@ -707,6 +758,7 @@ GameObject:
   - component: {fileID: 1981659232}
   - component: {fileID: 1981659231}
   - component: {fileID: 1981659230}
+  - component: {fileID: 1981659235}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -777,10 +829,25 @@ Transform:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1981659229}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 6.5, z: -10}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 0
+  m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1981659235
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 1981659229}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e182ea013cd7f624999c01773b56afaf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  focus: {fileID: 139912925}
+  min_distance: 50
+  max_distance: 25
+  cam_damp_time: 0.05

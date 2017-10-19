@@ -32,7 +32,7 @@ public class SysCore : MonoBehaviour {
 
     public static List<string> Valid_Keys;
 
-    public string Context_To_Switch_To;
+    public string CURRENT_CONTEXT;
 
     private Dictionary<string, ContextSwitchFunction> Context_To_Function;
     private Dictionary<string, string> Context_To_Key_Hook;
@@ -51,19 +51,13 @@ public class SysCore : MonoBehaviour {
         Context_To_Mouse_Hook.Add("NORMAL_PLAY", null);
         Context_To_Function.Add("NORMAL_PLAY", null);
 
-        InputReader.SetKeyAction("w", "forward");
-        InputReader.SetKeyAction("a", "left");
-        InputReader.SetKeyAction("s", "back");
-        InputReader.SetKeyAction("d", "right");
-        InputReader.SetKeyAction("space", "jump");
-
         Valid_Keys.Add("w");
         Valid_Keys.Add("a");
         Valid_Keys.Add("s");
         Valid_Keys.Add("d");
         Valid_Keys.Add("space");
 
-        Context_To_Switch_To = "";
+        CURRENT_CONTEXT = "NORMAL_PLAY";
        
     }
 
@@ -75,22 +69,11 @@ public class SysCore : MonoBehaviour {
        // Camera_Script = (Camera_Move_v1)Camera.GetComponent(typeof(Camera_Move_v1));
 
         //_SetUpPlayerActions();
-
-        Context_To_Switch_To = "NORMAL_PLAY";
-
-        Context_To_Function["NORMAL_PLAY"] = () => {
-
-            InputReader.SetActiveKeyHook(Context_To_Key_Hook["NORMAL_PLAY"]);
-            InputReader.SetActiveMouseHook(Context_To_Mouse_Hook["NORMAL_PLAY"]);
-
-        };
-
-        Context_To_Function["NORMAL_PLAY"]();
     }
 
     void Update()
     {
-        InputReader.ReadMouseMovement(new Vector2(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y")));
+        InputReader.ReadMouseMovement(Context_To_Mouse_Hook[CURRENT_CONTEXT], new Vector2(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y")));
 
         bool read_key = false;
 
@@ -101,38 +84,15 @@ public class SysCore : MonoBehaviour {
             {
                 Debug.Log(key);
                 read_key = true;
-                InputReader.ReadKey(key);
+                InputReader.ReadKey(Context_To_Key_Hook[CURRENT_CONTEXT], key);
             }
         }
         Debug.Log("--------------END INPUTS----------");
 
         if (!read_key)
         {
-            InputReader.ReadKey("");
+            InputReader.ReadKey(Context_To_Key_Hook[CURRENT_CONTEXT], "");
         }
-
-        //_UpdateCamera();
-    }
-
-    void LateUpdate()
-    {
-        //ContextManager.DoSwitchContext(Context_To_Switch_To);
-
-        Context_To_Switch_To = "";
-    }
-
-
-    private void _UpdateCamera()
-    {
-        Camera_Script.UpdateSpeed(Lark_Script._myController.Max_Speed, Lark_Script._myController.Speed);
-    }
-
-    private void _SetUpPlayerActions()
-    {
-        InputReader.AddNewHook("Lark", new PlayerKeyHook(Lark_Script.ReadInputHook));
-        InputReader.AddNewHook("Lark_Floater", new PlayerMouseHook(Lark_Floater_Script.GetMouseMovement));
-        ContextSwitchFunction func = () => { InputReader.SetActiveKeyHook("Lark"); InputReader.SetActiveMouseHook("Lark_Floater"); };
-        ContextManager.SetFunction("NORMAL_PLAY", func);
     }
 
     public void AddKeyHook(string hook_name, string context, PlayerKeyHook func)

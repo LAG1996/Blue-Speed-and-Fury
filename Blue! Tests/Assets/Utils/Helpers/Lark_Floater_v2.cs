@@ -5,6 +5,7 @@ using UnityEngine;
 public class Lark_Floater_v2 : MonoBehaviour {
 
     public GameObject Lark;
+    public GameObject System;
 
     public float x_speed = 100.0f;
     public float y_speed = 100.0f;
@@ -15,9 +16,15 @@ public class Lark_Floater_v2 : MonoBehaviour {
     private float x = 0.0f;
     private float y = 0.0f;
 
+    private SysCore SYS;
+
     // Use this for initialization
     void Start () {
-		
+
+        SYS = (SysCore)System.GetComponent(typeof(SysCore));
+
+        SYS.AddMouseHook("LARK_CAM_FOCUS", "NORMAL_PLAY", new SysCore.PlayerMouseHook(GetMouseMovement));
+
 	}
 	
 	// Update is called once per frame
@@ -29,7 +36,6 @@ public class Lark_Floater_v2 : MonoBehaviour {
 
     public void GetMouseMovement(Vector2 direction)
     {
-
         x += direction.x * x_speed * Time.deltaTime;
         y -= direction.y * y_speed * Time.deltaTime;
 

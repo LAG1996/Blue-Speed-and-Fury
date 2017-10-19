@@ -9,6 +9,10 @@ public class Lark_v1 : MonoBehaviour {
 
     public GameObject System; //Reference to the system game object. To be used to hook the input function from this script
 
+    public Dictionary<string, string> Action_To_Key;
+    private Dictionary<string, string> Key_To_Action;
+
+
     public float default_max_dist_from_ground;
     public float default_max_speed;
     public float default_min_speed;
@@ -16,6 +20,12 @@ public class Lark_v1 : MonoBehaviour {
     public float default_sharp_turn_speed;
     public float braking_pow;
     public float max_reverse_speed;
+    public float turn_threshold;
+    public float impulse;
+
+    public float max_jump_height;
+    public float max_jump_dur;
+    public bool OVERRIDE_GROUND_CHECK;
 
     //Enumerate player states. Player states change how Lark reacts to player input.
     //An idea of how each state would work:
@@ -43,7 +53,7 @@ public class Lark_v1 : MonoBehaviour {
     /***************
      * Lists
      ***************/
-    private List<string> ActionBuffer; // A list for the action buffer. Typically, it is only one action per frame, but we want to stay on the safe side.
+    private List<string> KeyBuffer; // A list for the key buffer.
 
     /******************
      * Flags
@@ -67,10 +77,9 @@ public class Lark_v1 : MonoBehaviour {
      ****************/
     SysCore SYS;
 
-    // Use this for initialization
-    void Start () {
-
-        Jump_Manager = new Air_Handler(0.0f, 0.0f);
+    void Awake()
+    {
+        Jump_Manager = new Air_Handler(max_jump_height, max_jump_dur);
         Run_Manager = new Ground_Move_Handler(0.0f, 0.0f, 0.0f, 0.0f);
 
         JUMP_DOWN = false;
@@ -83,27 +92,75 @@ public class Lark_v1 : MonoBehaviour {
 
         CURRENT_STATE = (int)PLAYER_STATE.GROUND;
 
-        ActionBuffer = new List<string>();
-
-        SYS = (SysCore)System.GetComponent(typeof(SysCore));
-        SYS.AddKeyHook("Lark", "NORMAL_PLAY", new SysCore.PlayerKeyHook(GetInput));
+        KeyBuffer = new List<string>();
 
         gameObject.transform.position = new Vector3(0.000001f, 0.0f, 0.0f);
 
         Grounded_State_Handler.move_direction = gameObject.transform.forward;
+
+        //Initialize the two action-key maps
+        Action_To_Key = new Dictionary<string, string>();
+        Key_To_Action = new Dictionary<string, string>();
+        //Set up default controls
+        Action_To_Key.Add("forward", "w");
+        Key_To_Action.Add("w", "forward");
+
+        Action_To_Key.Add("right", "d");
+        Key_To_Action.Add("d", "right");
+
+        Action_To_Key.Add("back", "s");
+        Key_To_Action.Add("s", "back");
+
+        Action_To_Key.Add("left", "a");
+        Key_To_Action.Add("a", "left");
+
+        Action_To_Key.Add("jump", "space");
+        Key_To_Action.Add("space", "jump");
+
+        Action_To_Key.Add("no_action", "");
+        Key_To_Action.Add("", "no_action");
+
+    }
+
+    // Use this for initialization
+    void Start () {
+
+        SYS = (SysCore)System.GetComponent(typeof(SysCore));
+        SYS.AddKeyHook("Lark", "NORMAL_PLAY", new SysCore.PlayerKeyHook(GetInput));
+
     }
 	
 	// Update is called once per frame
 	void Update () {
 
-        //Check if grounded. If not, go to fall state (unless the not grounded state is from a jump state).
-        //If so, go to grounded state.
-        CheckForGround();
         //Do the according state function
         State_Func(CURRENT_STATE);
 
+        Move();
 
-        ActionBuffer.Clear();
+        KeyBuffer.Clear();
+    }
+
+    private void Move()
+    {
+        Vector3 total_move = (Grounded_State_Handler.move_direction * Run_Manager.Speed) + (Jump_Manager.AirSpeed * Vector3.up);
+
+        Debug.Log("================MOVE===============");
+        Debug.Log("Movement ground direction: " + Grounded_State_Handler.move_direction);
+        Debug.Log("Ground speed: " + Run_Manager.Speed);
+        Debug.Log("Air speed: " + Jump_Manager.AirSpeed);
+        Debug.Log("Gravity: " + Jump_Manager.Gravity);
+        Debug.Log("Jump strength: " + Jump_Manager.JumpStrength);
+        Debug.Log("===============END MOVE============");
+
+
+        gameObject.transform.Translate(total_move * Time.deltaTime, Space.World);
+    }
+
+    private void UpdateCamera()
+    {
+        Camera_Move_v1.follow_speed = Run_Manager.Speed;
+        Camera_Move_v1.follow_max_speed = Run_Manager.MaxSpeed;
     }
 
     private void State_Func(int state)
@@ -126,14 +183,21 @@ public class Lark_v1 : MonoBehaviour {
         }
     }
 
-    private void GetInput(string action_name)
+    private void GetInput(string key)
     {
-        Debug.Log("I got input! " + action_name);
-        ActionBuffer.Add(action_name);
+        Debug.Log("I got input! " + key);
+        KeyBuffer.Add(key);
     }
 
     private void CheckForGround()
     {
+
+        if (OVERRIDE_GROUND_CHECK)
+        {
+            GROUNDED = true;
+            return;
+        }
+
         //This raycast should only check for ground layers
         LayerMask ground = 1 << LayerMask.NameToLayer("Ground");
         RaycastHit[] hit_info;
@@ -174,13 +238,15 @@ public class Lark_v1 : MonoBehaviour {
             }
         }
 
+        
+
         Debug.Log("GROUNDED? " + GROUNDED);
     }
 
     private void HandleGrounded()
     {
         Debug.DrawRay(gameObject.transform.position, Grounded_State_Handler.move_direction * 10.0f, Color.blue);
-        Debug.DrawRay(gameObject.transform.position, Grounded_State_Handler.total_input_direction * 10.0f, Color.yellow);
+        //Debug.DrawRay(gameObject.transform.position, Grounded_State_Handler.total_input_direction * 10.0f, Color.yellow);
 
         //Reset the input direction for a fresh calculation
         Grounded_State_Handler.total_input_direction = new Vector3();
@@ -188,31 +254,31 @@ public class Lark_v1 : MonoBehaviour {
         Run_Manager.MinSpeed = default_min_speed;
         Run_Manager.Acceleration = default_accel;
 
-        gameObject.transform.forward = Grounded_State_Handler.move_direction;
+        //Check if the player is grounded. If the player is not grounded, they are falling.
+        CheckForGround();
 
         //If the player isn't grounded, ignore any inputs for now. Just switch to the falling state
-        if(!GROUNDED)
+        if (!GROUNDED)
         {
+            Debug.Log("Falling...");
             SwitchState((int)PLAYER_STATE.FALL);
 
             return;
         }
 
         //Read the action buffer
-        foreach(string act in ActionBuffer)
+        foreach(string key in KeyBuffer)
         {
-            Grounded_State_Handler.ReadInput(act);
+            Grounded_State_Handler.ReadInput(Key_To_Action[key]);
         }
 
         //If a jump was detected...
-        if (JUMP_DOWN)
+        if (Grounded_State_Handler.detected_jump)
         {
             //...if a new jump is allowed, then just go to the jump state. We can handle inputs over there.
-            if(JumpIsValid())
-            {
-                SwitchState((int)PLAYER_STATE.JUMP);
-                return;
-            }
+            Debug.Log("Jumping...");
+            SwitchState((int)PLAYER_STATE.JUMP);
+            return;
         }
         else if(JUMP_UP)
         {
@@ -237,6 +303,7 @@ public class Lark_v1 : MonoBehaviour {
 
         //Calculate forward relative to the camera
         Vector3 cam_forward = Grounded_State_Handler.CalculateForward(Camera, gameObject.transform);
+        Debug.DrawRay(gameObject.transform.position, cam_forward * 10.0f, Color.green);
 
         //Rotate the input vector to this camera forward
         Vector3 real_dir = Grounded_State_Handler.AlignVectorToForward(Grounded_State_Handler.total_input_direction, cam_forward, Vector3.forward, gameObject.transform.up).normalized;
@@ -244,73 +311,43 @@ public class Lark_v1 : MonoBehaviour {
         Debug.Log("Camera Forward: " + cam_forward);
         Debug.Log("Real input direction: " + real_dir);
 
-        //If the player's speed is greater than 0, then we need to handle movement in such a way
-        //where the player's speed is affected by what angle they want to move.
-        //For example, a sharp right turn should have Lark slow down instead of turning like a truck
-        if(Run_Manager.Speed > 0.0f)
+        float move_angle = Vector3.Angle(real_dir, Grounded_State_Handler.move_direction);
+        float look_angle = Vector3.Angle(real_dir, cam_forward);
+
+        Vector3 vel = Vector3.zero;
+        if (look_angle < 80.0f)
         {
-            //Calculate the angle between the character's facing direction and the direction the player
-            //intends for the character to go.
-            var angle = Vector3.Angle(Grounded_State_Handler.move_direction, real_dir);
-
-            bool hard_break = false;
-
-            //If the angle is within the range <-60, 60>, then we consider this a forward movement,
-            //and the player character will just speed up
-            if(Mathf.Abs(angle) <= 60.0f)
-            {
-                Run_Manager.SpeedUp();
-            }
-            //If the angle is within the ranges <-105, -60) or (60, 105>, then we consider this a sharp
-            //turn, and the player character's speed will either need to be reduced to a turn speed
-            //or capped to a turn speed depending on whether the character is above said speed or below,
-            //respectively.
-            else if(Mathf.Abs(angle) <= 105.0f)
-            {
-                if(Run_Manager.Speed < default_sharp_turn_speed)
-                {
-                    Run_Manager.MaxSpeed = default_sharp_turn_speed;
-                    Run_Manager.SlowDown(braking_pow);
-                }
-                else if(Run_Manager.Speed > default_sharp_turn_speed)
-                {
-                    Run_Manager.MinSpeed = default_sharp_turn_speed;
-                    Run_Manager.SpeedUp();
-                }
-            }
-            //If the angle is outside either of those ranges, then we consider this direction to be
-            //towards the back, meaning that the player will need to make a hard break to quickly slow
-            //down before turning to said direction
-            else
-            {
-                if (!REVERSE)
-                {
-                    hard_break = true;
-                    Run_Manager.SlowDown(braking_pow * 1.5f);
-                }
-                else
-                {
-                    Run_Manager.MaxSpeed = max_reverse_speed;
-                    Run_Manager.SpeedUp();
-                }
-            }
-
-            if (!hard_break)
-                Grounded_State_Handler.TurnMoveDirTowards(real_dir, angle, Run_Manager.Speed/Run_Manager.MaxSpeed);
+            gameObject.transform.forward = Vector3.SmoothDamp(gameObject.transform.forward, real_dir, ref vel, 0.1f);
         }
         else
         {
-            //Calculate the angle between the camera's facing direction and the direction the player
-            //intends for the character to go.
-            var angle = Vector3.SignedAngle(cam_forward, real_dir, gameObject.transform.up);
+            gameObject.transform.forward = Vector3.SmoothDamp(gameObject.transform.forward, cam_forward, ref vel, 0.05f);
+        }
 
-            //Reverse if the player is holding roughly towards behind the camera
-            if (Mathf.Abs(angle) > 105.0f)
-            {
-                REVERSE = true;
-            }
- 
+        if(move_angle < 80.0f)
+        {
             Run_Manager.SpeedUp();
+            Grounded_State_Handler.move_direction = real_dir;
+        }
+        else if(move_angle <= 100.0f)
+        {
+            if (Run_Manager.Speed > 0.0f)
+                Run_Manager.SlowDown(braking_pow * 1.5f);
+            else
+            {
+                Run_Manager.SpeedUp(impulse);
+                Grounded_State_Handler.move_direction = real_dir;
+            }
+                
+        }
+        else
+        {
+            if (Run_Manager.Speed > 0.0f)
+            {
+                Run_Manager.SlowDown(braking_pow);
+            }
+            else
+                Grounded_State_Handler.move_direction = real_dir;
         }
     }
 
@@ -321,6 +358,18 @@ public class Lark_v1 : MonoBehaviour {
 
     private void HandleJump()
     {
+        Jump_Manager.CalcJump(Jump_State_Handler.new_jump);
+        Jump_State_Handler.new_jump = false;
+
+        //If grounded, go to grounded state. If not, well, it only makes sense.
+        CheckForGround();
+        if(GROUNDED)
+        {
+            Debug.Log("Switching to grounded...");
+            Jump_Manager.Land();
+            SwitchState((int)PLAYER_STATE.GROUND);
+            return;
+        }
 
     }
 
@@ -334,6 +383,8 @@ public class Lark_v1 : MonoBehaviour {
         public static Vector3 total_input_direction;
         public static Vector3 move_direction;
 
+        public static bool detected_jump;
+
         public Grounded_State_Handler()
         {}
 
@@ -344,7 +395,7 @@ public class Lark_v1 : MonoBehaviour {
 
         public static Vector3 AlignVectorToForward(Vector3 vec, Vector3 to_forward, Vector3 from_forward, Vector3 axis)
         {
-            float angle = Vector3.SignedAngle(to_forward, from_forward, axis);
+            float angle = Vector3.SignedAngle(from_forward, to_forward, axis);
 
             return Quaternion.AngleAxis(angle, axis) * vec;
         }
@@ -355,15 +406,17 @@ public class Lark_v1 : MonoBehaviour {
             {
                 move_direction = new_dir;
             }
+
             float turn_percentage = Mathf.Min(Mathf.Max(1 - (speed_percentage), 0.05f), 0.1f) * Mathf.Max(0.9f, 1.0f - (180.0f / angle));
             move_direction = Vector3.Slerp(move_direction, new_dir, turn_percentage);
         }
 
         public static void ReadInput(string action)
         {
+            detected_jump = false;
             if(action == "jump")
             {
-
+                detected_jump = true;
             }
             else if(action == "forward")
             {
@@ -386,12 +439,13 @@ public class Lark_v1 : MonoBehaviour {
 
     private class Jump_State_Handler
     {
+        public static bool new_jump = true;
+
         public Jump_State_Handler()
         {
 
         }
     }
-
 
     private class Air_Handler
     {
@@ -419,6 +473,11 @@ public class Lark_v1 : MonoBehaviour {
             CalculateGravity();
             CalculateJumpStrength();
         }
+        
+        public void Land()
+        {
+            _current_air_speed = 0.0f;
+        }
 
         public void CalcJump(bool new_jump = false)
         {
@@ -428,7 +487,7 @@ public class Lark_v1 : MonoBehaviour {
                 return;
             }
 
-            _current_air_speed -= _gravity;
+            _current_air_speed -= _gravity * Time.deltaTime;
         }
         
         public void OverrideGravity(float new_grav)
@@ -449,9 +508,7 @@ public class Lark_v1 : MonoBehaviour {
         private void CalculateJumpStrength()
         {
             _jump_strength = (_max_height + _gravity * Mathf.Pow(_max_air_time / 2, 2)) / (_max_air_time / 2);
-        }
-
-        
+        }  
     }
 
     private class Ground_Move_Handler
@@ -487,25 +544,25 @@ public class Lark_v1 : MonoBehaviour {
 
         public void SpeedUp()
         {
-            _current_speed += _acceleration * (1 - _friction);
+            _current_speed += _acceleration * (1 - _friction) * Time.deltaTime;
             ClampSpeed();
         }
 
         public void SpeedUp(float impulse)
         {
-            _current_speed += _acceleration * (1 - _friction) + impulse;
+            _current_speed += _acceleration * (1 - _friction) + impulse * Time.deltaTime;
             ClampSpeed();
         }
 
         public void SlowDown()
         {
-            _current_speed -= _acceleration * (1 - _friction);
+            _current_speed -= _acceleration * (1 - _friction) * Time.deltaTime;
             ClampSpeed();
         }
 
         public void SlowDown(float brake_power)
         {
-            _current_speed -= _acceleration * (1 - _friction) + brake_power;
+            _current_speed -= _acceleration * (1 - _friction) + brake_power * Time.deltaTime;
             ClampSpeed();
         }
 

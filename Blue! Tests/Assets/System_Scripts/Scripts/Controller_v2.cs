@@ -8,22 +8,11 @@ public class Controller_v2 {
     private Dictionary<string, SysCore.PlayerKeyHook> KeyHooks;
     private Dictionary<string, SysCore.PlayerMouseHook> MouseHooks;
 
-    private SysCore.PlayerKeyHook active_key_hook;
-    private SysCore.PlayerMouseHook active_mouse_hook;
-
-    private Dictionary<string, string> Key_To_Action;
 
     public Controller_v2()
     {
         KeyHooks = new Dictionary<string, SysCore.PlayerKeyHook>();
         MouseHooks = new Dictionary<string, SysCore.PlayerMouseHook>();
-        Key_To_Action = new Dictionary<string, string>();
-
-
-        Key_To_Action.Add("", "no_action");
-
-        active_key_hook = null;
-        active_mouse_hook = null;
     }
 
     public void AddNewHook(string name, SysCore.PlayerKeyHook func)
@@ -36,32 +25,15 @@ public class Controller_v2 {
         MouseHooks.Add(name, func);
     }
 
-    public void SetActiveKeyHook(string name)
+    public void ReadMouseMovement(string hook_name, Vector2 mouse_dir)
     {
-        if(name != null)
-            active_key_hook = KeyHooks[name];
+        if(hook_name != null && MouseHooks.ContainsKey(hook_name))
+            MouseHooks[hook_name](mouse_dir);
     }
 
-    public void SetActiveMouseHook(string name)
+    public void ReadKey(string hook_name, string key_name)
     {
-        if(name != null)
-            active_mouse_hook = MouseHooks[name];
-    }
-
-    public void SetKeyAction(string key, string action)
-    {
-        Key_To_Action.Add(key, action);
-    }
-
-    public void ReadMouseMovement(Vector2 mouse_dir)
-    {
-        if(active_mouse_hook != null)
-            active_mouse_hook(mouse_dir);
-    }
-
-    public void ReadKey(string key_name)
-    {
-        if(active_key_hook != null)
-            active_key_hook(Key_To_Action[key_name]);
+        if(hook_name != null && KeyHooks.ContainsKey(hook_name))
+            KeyHooks[hook_name](key_name);
     }
 }
